@@ -9,9 +9,9 @@ const defaultScoringConfig = {
 };
 
 const defaultRankingConfig = {
-    tier1ScoreThreshold: 1_000_000_000_000,
+    tier1ScoreThreshold: 0,
     tier2Percentile: .5,
-    tier3Percentile: .75,
+    tier3Percentile: .85,
 };
 
 // simulate(10, 1000, {min: .25, max: 1, resolution: .1}, {min: .1, max: 1, resolution: .1});
@@ -22,11 +22,14 @@ function monteCarlo (
     simsPerParameterSet     = 1,
     // stepsPerParameterRange  = 10,
     numberOfGamesRange      = { min: 3,     max: 50,        resolution: 1, },
-    numberOfPlayersRange    = { min: 100,   max: 1_000,   resolution: 100, },
+    numberOfPlayersRange    = { min: 5_000,   max: 50_000,   resolution: 5_000, },
     playerEngagementRange   = { min: .1,    max: 1,         resolution: .1, },
     scoreRandomnessRange    = { min: 0,     max: 1,         resolution: .1, },
 ) {
     let raw = [];
+
+    let headers = `Players;\tGames;\t# R1;\t# R2;\t# R3;\t# UR;\tP1 Skill;\tP1 Podiums;\tP1 1sts;\tP1 2nds;\tP1 3rds;\tP1 Avg. Perf.;\tP1 Participation;\tP2 Podiums;\tP2 1sts;\tP2 2nds;\tP2 3rds;\tP2 Avg. Perf.;\tP2 Participation;\tP3 Podiums;\tP3 1sts;\tP3 2nds;\tP3 3rds;\tP3 Avg. Perf.;\tP3 Participation;\tR1 Avg. Perf.;\tR1 Participation;\tR2 Avg. Perf.;\tR2 Participation;\tR3 Avg. Perf.;\tR3 Participation;\tUR Avg. Perf.;\tUR Participation;`;
+    console.log(headers)
     
     // console.log(stepsInParameterRange(numberOfGamesRange))
     // console.log(stepsInParameterRange(numberOfPlayersRange))
@@ -50,7 +53,7 @@ function simulate (
     randomnessRange,
     playerEngagementRange,
 ) {
-    console.log(`Simulating ${numberOfPlayers} players playing ${numberOfGames} games with ${randomnessRange.min}-${randomnessRange.max} scoring randomness and ${playerEngagementRange.min}-${playerEngagementRange.max}...`)
+
     const players = range(numberOfPlayers).map(i => player(i, playerEngagementRange))
     const games = range(numberOfGames).map(i => game(i, randomnessRange));
 
@@ -60,7 +63,7 @@ function simulate (
         // Players can't conceivably play more than a certain number of games due to time constraints
         // Would be good to have a # of plays factor... participation is this to a degree,
         // But if feels like it doesn't capture going deep vs going wide very well
-        const gameCount = Math.min(Math.ceil(games.length * player.participation), 15);
+        const gameCount = Math.min(Math.ceil(games.length * player.participation), 7);
         player.games = [];
         for (let i = 0; player.games.length < gameCount; i++) {
             if (Math.random() >= .5) {
@@ -100,7 +103,7 @@ function simulate (
     const normalizedScores = games.reduce((agg, game) => {
         agg[game.id] = players.reduce((agg, player) => {
             agg[player.id] = calculateGameScoreComponent(
-                tabulatedScores[game.id].normalizedPerformances[player.id],
+                tabulatedScores[game.id].normalized[player.id],
                 tabulatedScores[game.id].leaderboard.findIndex(score => score.player === player.id) + 1,
             );
             return agg;
@@ -116,14 +119,14 @@ function simulate (
     // Calculate leaderboard, % performance and podium for overall metascores
     const metascores = tabulateMetascores(players, normalizedScores);
     
-    console.log(
-        'Calculate overall scores...',
-        // metascores.podium,
-        `${metascores.elite.length} elite ranked players,`,
-        `${metascores.strong.length} strong ranked players,`,
-        `${metascores.wooden.length} wooden ranked players,`,
-        `${metascores.unranked.length} unranked players,`,
-    );
+    // console.log(
+    //     // 'Calculate overall scores...',
+    //     // metascores.podium,
+    //     `${metascores.elite.length} elite ranked players,`,
+    //     `${metascores.strong.length} strong ranked players,`,
+    //     `${metascores.wooden.length} wooden ranked players,`,
+    //     `${metascores.unranked.length} unranked players,`,
+    // );
 
     const participation = tabulateParticipation(players, games, metascores);
 
@@ -138,6 +141,80 @@ function simulate (
     //     'Tabulate performance',
     //     performance
     // )
+
+    // out = `${out}${pct(metascores.podium.first.skill)} P1 Skill;\t`;
+
+    // out = `${out}${performance.rank1.podiums} P1 Podiums;\t`;
+    // out = `${out}${performance.rank1.firsts} P1 1sts;\t`;
+    // out = `${out}${performance.rank1.seconds} P1 2nds;\t`;
+    // out = `${out}${performance.rank1.thirds} P1 3rds;\t`;
+    // out = `${out}${pct(performance.rank1.averagePerformance)} P1 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.rank1)} P1 Participation;\t`;
+    
+    // out = `${out}${performance.rank2.podiums} P2 Podiums;\t`;
+    // out = `${out}${performance.rank2.firsts} P2 1sts;\t`;
+    // out = `${out}${performance.rank2.seconds} P2 2nds;\t`;
+    // out = `${out}${performance.rank2.thirds} P2 3rds;\t`;
+    // out = `${out}${pct(performance.rank2.averagePerformance)} P2 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.rank2)} P2 Participation;\t`;
+    
+    // out = `${out}${performance.rank3.podiums} P3 Podiums;\t`;
+    // out = `${out}${performance.rank3.firsts} P3 1sts;\t`;
+    // out = `${out}${performance.rank3.seconds} P3 2nds;\t`;
+    // out = `${out}${performance.rank3.thirds} P3 3rds;\t`;
+    // out = `${out}${pct(performance.rank3.averagePerformance)} P3 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.rank3)} P3 Participation;\t`;
+
+    // out = `${out}${pct(performance.elite.averagePerformance)} R1 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.elite)} R1 Participation;\t`;
+
+    // out = `${out}${pct(performance.strong.averagePerformance)} R2 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.strong)} R2 Participation;\t`;
+
+    // out = `${out}${pct(performance.wooden.averagePerformance)} R3 Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.wooden)} R3 Participation;\t`;
+
+    // out = `${out}${pct(performance.unranked.averagePerformance)} UR Avg. Perf.;\t`;
+    // out = `${out}${pct(participation.unranked)} UR Participation;\t`;
+
+    let out = `${numberOfPlayers};\t${numberOfGames};\t`
+    out = `${out}${metascores.elite.length};\t${metascores.strong.length};\t${metascores.wooden.length};\t${metascores.unranked.length};\t`
+    out = `${out}${pct(metascores.podium.first.skill)};\t`;
+
+    out = `${out}${performance.rank1.podiums};\t`;
+    out = `${out}${performance.rank1.firsts};\t`;
+    out = `${out}${performance.rank1.seconds};\t`;
+    out = `${out}${performance.rank1.thirds};\t`;
+    out = `${out}${pct(performance.rank1.averagePerformance)};\t`;
+    out = `${out}${pct(participation.rank1)};\t`;
+    
+    out = `${out}${performance.rank2.podiums};\t`;
+    out = `${out}${performance.rank2.firsts};\t`;
+    out = `${out}${performance.rank2.seconds};\t`;
+    out = `${out}${performance.rank2.thirds};\t`;
+    out = `${out}${pct(performance.rank2.averagePerformance)};\t`;
+    out = `${out}${pct(participation.rank2)};\t`;
+    
+    out = `${out}${performance.rank3.podiums};\t`;
+    out = `${out}${performance.rank3.firsts};\t`;
+    out = `${out}${performance.rank3.seconds};\t`;
+    out = `${out}${performance.rank3.thirds};\t`;
+    out = `${out}${pct(performance.rank3.averagePerformance)};\t`;
+    out = `${out}${pct(participation.rank3)};\t`;
+
+    out = `${out}${pct(performance.elite.averagePerformance)};\t`;
+    out = `${out}${pct(participation.elite)};\t`;
+
+    out = `${out}${pct(performance.strong.averagePerformance)};\t`;
+    out = `${out}${pct(participation.strong)};\t`;
+
+    out = `${out}${pct(performance.wooden.averagePerformance)};\t`;
+    out = `${out}${pct(participation.wooden)};\t`;
+
+    out = `${out}${pct(performance.unranked.averagePerformance)};\t`;
+    out = `${out}${pct(participation.unranked)};\t`;
+
+    console.log(out);
 
     return {
         // Input parameters
@@ -204,7 +281,7 @@ function tabulatePerformance (
     };
     function getAveragePerformance (player) {
         return Object.keys(tabulatedScores).reduce((agg, game) => {
-            agg += tabulatedScores[game].normalizedPerformances[player] || 0;
+            agg += tabulatedScores[game].normalized[player] || 0;
             return agg;
         }, 0) / players.find(x => x.id === player).games.length;
     };
@@ -302,7 +379,7 @@ function tabulateGameScores (
 ) {
     scores = scores.filter(score => score.game === game);
     const leaderboard = scores.sort((a, b) => b.score - a.score);
-    const normalizedPerformances = scores.reduce((agg, score, i) => {
+    const normalized = scores.reduce((agg, score, i) => {
         agg[score.player] = score.score / leaderboard[0].score;
         return agg;
     }, {});
@@ -313,7 +390,7 @@ function tabulateGameScores (
     };
     return {
         leaderboard,
-        normalizedPerformances,
+        normalized,
         podium,
     };
 };
@@ -323,6 +400,46 @@ function tabulateMetascores (
     normalizedScores,
     config=defaultRankingConfig,
 ) {
+    function percentileRanks (leaderboard) {
+        const normalized = leaderboard.reduce((agg, x, i) => {
+            agg[x.player] = 1 - i / (players.length - 1)
+            return agg;
+        }, {});
+        const wooden = players.filter(player => {
+            return scores[player.id] >= config.tier1ScoreThreshold
+                && normalized[player.id] <= config.tier2Percentile;
+        });
+        const strong = players.filter(player => {
+            return normalized[player.id] > config.tier2Percentile
+                && normalized[player.id] <= config.tier3Percentile;
+        });
+        const elite = players.filter(player => {
+            return normalized[player.id] > config.tier3Percentile
+                && leaderboard.findIndex(x => x.player === player.id) > 2;
+        });
+        return { normalized, wooden, strong, elite };
+    };
+
+    function pctOfTopScoreRanks (leaderboard) {
+        const normalized = leaderboard.reduce((agg, x, i) => {
+            agg[x.player] = x.score / leaderboard[0].score
+            return agg;
+        }, {});
+        const wooden = players.filter(player => {
+            return scores[player.id] >= config.tier1ScoreThreshold
+                && normalized[player.id] <= config.tier2Percentile;
+        });
+        const strong = players.filter(player => {
+            return normalized[player.id] > config.tier2Percentile
+                && normalized[player.id] <= config.tier3Percentile;
+        });
+        const elite = players.filter(player => {
+            return normalized[player.id] > config.tier3Percentile
+                && leaderboard.findIndex(x => x.player === player.id) > 2;
+        });
+        return { normalized, wooden, strong, elite };
+    };
+
     const scores = Object.values(normalizedScores).reduce((agg, game) => {
         for (const player in game) {
             const score = game[player];
@@ -334,6 +451,7 @@ function tabulateMetascores (
         };
         return agg;
     }, {});
+
     const leaderboard = players
     .sort((a, b) => scores[b.id] - scores[a.id])
     .reduce((agg, player) => {
@@ -344,34 +462,24 @@ function tabulateMetascores (
         });
         return agg;
     }, []);
-    const normalizedPerformances = leaderboard.reduce((agg, x, i) => {
-        agg[x.player] = x.score / leaderboard[0].score
-        return agg;
-    }, {});
+    
     const podium = {
         first: leaderboard[0],
         second: leaderboard[1],
         third: leaderboard[2],
     };
+
     const unranked = players.filter(player => {
         return scores[player.id] < config.tier1ScoreThreshold;
     });
-    const wooden = players.filter(player => {
-        return scores[player.id] >= config.tier1ScoreThreshold
-            && normalizedPerformances[player.id] <= config.tier2Percentile;
-    });
-    const strong = players.filter(player => {
-        return normalizedPerformances[player.id] > config.tier2Percentile
-            && normalizedPerformances[player.id] <= config.tier3Percentile;
-    });
-    const elite = players.filter(player => {
-        return normalizedPerformances[player.id] > config.tier3Percentile
-            && leaderboard.findIndex(x => x.player === player.id) > 2;
-    });
+
+    // const { normalized, wooden, strong, elite } = pctOfTopScoreRanks(leaderboard);
+    const { normalized, wooden, strong, elite } = percentileRanks(leaderboard);
+
     return {
         scores,
         leaderboard,
-        normalizedPerformances,
+        normalized,
         podium,
         unranked,
         wooden,
@@ -447,3 +555,7 @@ function range (n) {
 function rangeDelta ({min, max}) {
     return max - min;
 };
+
+function pct (n) {
+    return Math.round(n * 100) + '%';
+}
